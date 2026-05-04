@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OVA — Modalidades de Aprendizaje en Línea</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0e0e12;
+    --cream: #f5f0e8;
+    --gold: #c8a84b;
+    --teal: #1a7a6e;
+    --rust: #c24a2b;
+    --sky: #2d6fa8;
+    --violet: #6b4fa8;
+    --bg: #0e0e12;
+    --card: #16161e;
+    --border: rgba(200,168,75,0.25);
+    --text: #e8e4dc;
+    --muted: #888;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+  }
+
+  /* ── PROGRESS BAR ── */
+  #progress-bar {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--teal));
+    transition: width .5s ease;
+    z-index: 100;
+  }
+
+  /* ── SLIDE COUNTER ── */
+  #counter {
+    position: fixed; top: 18px; right: 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: .75rem; color: var(--muted);
+    z-index: 100; letter-spacing: .1em;
+  }
+
+  /* ── NAV ── */
+  #nav {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 12px; align-items: center;
+    background: rgba(22,22,30,.9);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 10px 20px;
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+  #nav button {
+    background: none; border: none; cursor: pointer;
+    color: var(--text); font-size: 1rem;
+    padding: 6px 14px; border-radius: 30px;
+    transition: background .2s, color .2s;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .85rem; font-weight: 500;
+  }
+  #nav button:hover { background: rgba(200,168,75,.15); color: var(--gold); }
+  #nav button:disabled { opacity: .3; cursor: default; }
+  #nav .sep { width: 1px; height: 18px; background: var(--border); }
+
+  /* ── SLIDES CONTAINER ── */
+  #deck {
+    width: 100%; height: 100%;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 60px 40px 100px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .6s ease, transform .6s ease;
+    transform: translateY(20px);
+    overflow-y: auto;
+  }
+  .slide.active {
+    opacity: 1; pointer-events: all;
+    transform: translateY(0);
+  }
+
+  /* ── TYPOGRAPHY ── */
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: .7rem; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--gold);
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.4rem, 6vw, 4.5rem);
+    font-weight: 900; line-height: 1.05;
+    color: var(--cream);
+  }
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 700; line-height: 1.1;
+    color: var(--cream);
+  }
+  h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+  p, li {
+    font-size: clamp(.88rem, 1.6vw, 1.05rem);
+    line-height: 1.75; color: rgba(232,228,220,.8);
+  }
+  strong { color: var(--cream); font-weight: 600; }
+
+  /* ── DECORATIVE ELEMENTS ── */
+  .grid-bg {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(200,168,75,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,168,75,.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+  .blob {
+    position: absolute; border-radius: 50%;
+    filter: blur(80px); pointer-events: none; opacity: .5;
+  }
+
+  /* ── CARDS ── */
+  .card-grid {
+    display: grid; gap: 16px;
+    width: 100%; max-width: 1000px;
+  }
+  .card-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .card-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .card-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: transform .25s, border-color .25s;
+  }
+  .card:hover { transform: translateY(-3px); border-color: rgba(200,168,75,.5); }
+  .card .icon { font-size: 2rem; margin-bottom: 12px; display: block; }
+  .card p { font-size: .88rem; }
+
+  .accent-line {
+    width: 48px; height: 3px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    margin: 16px 0;
+  }
+
+  /* ── SLIDE-SPECIFIC ── */
+
+  /* S1 — PORTADA */
+  #s1 { text-align: center; gap: 0; }
+  #s1 h1 { max-width: 820px; margin-bottom: 24px; }
+  #s1 .subtitle {
+    font-size: clamp(1rem, 2vw, 1.3rem);
+    color: var(--muted); max-width: 560px;
+    margin-bottom: 40px; line-height: 1.6;
+  }
+  #s1 .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(200,168,75,.1);
+    border: 1px solid var(--border);
+    border-radius: 50px; padding: 10px 24px;
+    font-size: .85rem; color: var(--gold);
+  }
+  .start-btn {
+    margin-top: 32px;
+    background: linear-gradient(135deg, var(--gold), #a07a30);
+    border: none; border-radius: 50px;
+    padding: 14px 40px; color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700; font-size: 1rem;
+    cursor: pointer;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .start-btn:hover { transform: scale(1.04); box-shadow: 0 8px 30px rgba(200,168,75,.35); }
+
+  /* S2 — OBJETIVOS */
+  .obj-list {
+    list-style: none;
+    display: flex; flex-direction: column; gap: 14px;
+    max-width: 700px; width: 100%;
+  }
+  .obj-list li {
+    display: flex; align-items: flex-start; gap: 16px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 22px;
+  }
+  .obj-list .num {
+    font-family: 'DM Mono', monospace;
+    font-size: .75rem; color: var(--gold);
+    background: rgba(200,168,75,.1);
+    border-radius: 6px; padding: 4px 10px;
+    flex-shrink: 0; margin-top: 2px;
+    letter-spacing: .05em;
+  }
+
+  /* S3 — ¿QUÉ ES? */
+  .split {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 40px; max-width: 1000px; width: 100%;
+    align-items: start;
+  }
+  .big-stat {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 900; color: var(--gold);
+    line-height: 1;
+  }
+  .big-stat span { font-size: .35em; color: var(--muted); display: block; }
+
+  /* S4 — TIMELINE */
+  .timeline { max-width: 700px; width: 100%; }
+  .t-item {
+    display: grid; grid-template-columns: 90px 1fr;
+    gap: 0 24px; position: relative;
+  }
+  .t-item::before {
+    content: ''; position: absolute;
+    left: 89px; top: 28px; bottom: -28px;
+    width: 1px; background: var(--border);
+  }
+  .t-item:last-child::before { display: none; }
+  .t-year {
+    font-family: 'DM Mono', monospace;
+    font-size: .75rem; color: var(--gold);
+    text-align: right; padding-top: 6px;
+  }
+  .t-body {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .t-body h4 { font-weight: 600; color: var(--cream); margin-bottom: 4px; }
+
+  /* S5 — MODALIDADES PRINCIPALES */
+  .mod-card {
+    border-radius: 16px; padding: 28px;
+    display: flex; flex-direction: column; gap: 10px;
+    border: 1px solid transparent;
+    transition: transform .25s;
+  }
+  .mod-card:hover { transform: translateY(-4px); }
+  .mod-card.async { background: linear-gradient(135deg, #1a2a1a, #0e1a0e); border-color: rgba(26,122,110,.4); }
+  .mod-card.sync  { background: linear-gradient(135deg, #1a1a2a, #0e0e1a); border-color: rgba(45,111,168,.4); }
+  .mod-card.hybrid{ background: linear-gradient(135deg, #2a1a10, #1a0e08); border-color: rgba(194,74,43,.4); }
+  .mod-card .tag {
+    font-family: 'DM Mono', monospace; font-size: .65rem;
+    letter-spacing: .15em; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    width: fit-content;
+  }
+  .mod-card.async .tag { background: rgba(26,122,110,.2); color: #4ecdc4; }
+  .mod-card.sync  .tag { background: rgba(45,111,168,.2); color: #74b3f0; }
+  .mod-card.hybrid .tag { background: rgba(194,74,43,.2); color: #f0a07a; }
+
+  /* S6 — E-LEARNING */
+  .feature-row {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    justify-content: center; max-width: 900px;
+  }
+  .f-chip {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 50px; padding: 10px 20px;
+    font-size: .88rem; display: flex; align-items: center; gap: 8px;
+    transition: border-color .2s, color .2s;
+  }
+  .f-chip:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* S7 — TABLA COMPARATIVA */
+  .comp-table {
+    width: 100%; max-width: 900px; border-collapse: separate;
+    border-spacing: 0;
+  }
+  .comp-table th, .comp-table td {
+    padding: 14px 20px; text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: .88rem;
+  }
+  .comp-table th {
+    background: rgba(200,168,75,.08);
+    color: var(--gold);
+    font-family: 'DM Mono', monospace;
+    font-size: .7rem; letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  .comp-table tr:hover td { background: rgba(200,168,75,.04); }
+  .tick { color: #4ecdc4; } .cross { color: #e05a5a; }
+
+  /* S8 — HERRAMIENTAS */
+  .tool-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 14px; max-width: 900px; width: 100%;
+  }
+  .tool-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+    transition: border-color .2s, transform .2s;
+  }
+  .tool-card:hover { border-color: var(--gold); transform: translateY(-3px); }
+  .tool-icon { font-size: 1.8rem; }
+  .tool-cat {
+    font-family: 'DM Mono', monospace; font-size: .65rem;
+    color: var(--muted); letter-spacing: .1em; text-transform: uppercase;
+  }
+
+  /* S9 — VENTAJAS / DESVENTAJAS */
+  .vd-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 20px; max-width: 900px; width: 100%;
+  }
+  .vd-col { display: flex; flex-direction: column; gap: 10px; }
+  .vd-col h3 { margin-bottom: 6px; }
+  .vd-item {
+    background: var(--card); border-radius: 10px;
+    padding: 14px 18px; font-size: .88rem;
+    border-left: 3px solid;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .vd-item.pro { border-color: #4ecdc4; }
+  .vd-item.con { border-color: #e05a5a; }
+
+  /* S10 — TENDENCIAS */
+  .trend-list { max-width: 800px; width: 100%; display: flex; flex-direction: column; gap: 12px; }
+  .trend-item {
+    display: grid; grid-template-columns: 56px 1fr;
+    gap: 16px; align-items: center;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 22px;
+    transition: border-color .25s;
+  }
+  .trend-item:hover { border-color: rgba(200,168,75,.5); }
+  .trend-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem; font-weight: 900;
+    color: rgba(200,168,75,.25); text-align: center;
+  }
+
+  /* S11 — ACTIVIDAD */
+  .quiz-wrap { max-width: 700px; width: 100%; }
+  .quiz-q { font-size: 1.1rem; font-weight: 600; color: var(--cream); margin-bottom: 20px; }
+  .quiz-opts { display: flex; flex-direction: column; gap: 10px; }
+  .q-btn {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 22px;
+    color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: .95rem; text-align: left; cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .q-btn:hover { border-color: var(--gold); background: rgba(200,168,75,.07); }
+  .q-btn.correct { border-color: #4ecdc4; background: rgba(78,205,196,.1); color: #4ecdc4; }
+  .q-btn.wrong   { border-color: #e05a5a; background: rgba(224,90,90,.1);  color: #e05a5a; }
+  #quiz-feedback { margin-top: 16px; font-size: .95rem; min-height: 28px; }
+  .next-q-btn {
+    margin-top: 18px; display: none;
+    background: rgba(200,168,75,.15); border: 1px solid var(--gold);
+    color: var(--gold); border-radius: 50px; padding: 10px 28px;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    font-size: .88rem; font-weight: 600;
+  }
+
+  /* S12 — CIERRE */
+  #s12 { text-align: center; }
+  .ref-list {
+    list-style: none; display: flex; flex-direction: column; gap: 10px;
+    max-width: 700px; text-align: left;
+  }
+  .ref-list li {
+    font-size: .82rem; color: var(--muted);
+    border-left: 2px solid var(--border); padding-left: 14px;
+  }
+
+  /* ── RESPONSIVO ── */
+  @media (max-width: 640px) {
+    .split, .card-grid.cols-2, .card-grid.cols-3, .card-grid.cols-4,
+    .vd-grid, .tool-grid { grid-template-columns: 1fr; }
+    .card-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+    h1 { font-size: 2rem; }
+    .slide { padding: 50px 20px 100px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar" style="width:8.33%"></div>
+<div id="counter">01 / 12</div>
+
+<div id="deck">
+
+  <!-- ══ S1 PORTADA ══ -->
+  <div class="slide active" id="s1">
+    <div class="grid-bg"></div>
+    <div class="blob" style="width:400px;height:400px;background:radial-gradient(#c8a84b44,transparent);top:-100px;right:-100px;"></div>
+    <div class="blob" style="width:300px;height:300px;background:radial-gradient(#1a7a6e33,transparent);bottom:0;left:-80px;"></div>
+    <div class="eyebrow">Objeto Virtual de Aprendizaje · 2025</div>
+    <h1>Modalidades de<br>Aprendizaje en Línea</h1>
+    <p class="subtitle">Explora las formas en que la tecnología ha transformado la educación, sus modelos, herramientas y mejores prácticas.</p>
+    <div class="badge">🎓 12 Slides · Interactivo · Autoevaluación incluida</div>
+    <button class="start-btn" onclick="goTo(1)">Comenzar →</button>
+  </div>
+
+  <!-- ══ S2 OBJETIVOS ══ -->
+  <div class="slide" id="s2">
+    <div class="grid-bg"></div>
+    <div class="eyebrow">Slide 02 — Propósito</div>
+    <h2 style="margin-bottom:8px;">Objetivos de Aprendizaje</h2>
+    <div class="accent-line"></div>
+    <ul class="obj-list">
+      <li><span class="num">OA 01</span><p>Identificar las principales <strong>modalidades de aprendizaje en línea</strong> y sus características distintivas.</p></li>
+      <li><span class="num">OA 02</span><p>Comparar los modelos <strong>sincrónico, asincrónico e híbrido</strong> según sus ventajas y contextos de aplicación.</p></li>
+      <li><span class="num">OA 03</span><p>Reconocer las <strong>herramientas tecnológicas</strong> más utilizadas en entornos de aprendizaje virtual.</p></li>
+      <li><span class="num">OA 04</span><p>Reflexionar sobre las <strong>tendencias emergentes</strong> y el futuro del aprendizaje en línea.</p></li>
+    </ul>
+  </div>
+
+  <!-- ══ S3 ¿QUÉ ES? ══ -->
+  <div class="slide" id="s3">
+    <div class="grid-bg"></div>
+    <div class="eyebrow">Slide 03 — Conceptos base</div>
+    <h2 style="margin-bottom:8px;">¿Qué es el Aprendizaje en Línea?</h2>
+    <div class="accent-line"></div>
+    <div class="split">
+      <div>
+        <p>El <strong>aprendizaje en línea</strong> (e-learning) es todo proceso educativo mediado por tecnologías digitales e Internet, donde el estudiante y el docente pueden estar en lugares y tiempos distintos.</p>
+        <br>
+        <p>Integra recursos multimedia, plataformas interactivas y comunidades virtuales para generar experiencias de aprendizaje flexibles, accesibles y personalizables.</p>
+        <br>
+        <p>Su adopción se aceleró desde los años 90 y se consolidó globalmente con los avances de banda ancha y dispositivos móviles.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <div style="text-align:center;">
+          <div class="big-stat">+300M<span>estudiantes en línea a nivel mundial (2024)</span></div>
+        </div>
+        <div class="card">
+          <span class="icon">📡</span>
+          <h3 style="font-size:1rem;">Elementos clave</h3>
+          <p style="font-size:.85rem;">Conectividad · Contenido digital · Interacción · Evaluación · Retroalimentación</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S4 EVOLUCIÓN HISTÓRICA ══ -->
+  <div class="slide" id="s4">
+    <div class="grid-bg"></div>
+    <div class="eyebrow">Slide 04 — Historia</div>
+    <h2 style="margin-bottom:8px;">Evolución del E-Learning</h2>
+    <div class="accent-line"></div>
+    <div class="timeline">
+      <div class="t-item"><span class="t-year">1960s</span><div class="t-body"><h4>Enseñanza asistida por computadora (CAI)</h4><p style="font-size:.82rem;">Primeros sistemas tutoriales con retroalimentación automatizada.</p></div></div>
+      <div class="t-item"><span class="t-year">1990s</span><div class="t-body"><h4>Internet y LMS</h4><p style="font-size:.82rem;">Aparecen los primeros LMS (Moodle, Blackboard). El web democratiza el acceso.</p></div></div>
+      <div class="t-item"><span class="t-year">2008</span><div class="t-body"><h4>MOOCs y aprendizaje abierto</h4><p style="font-size:.82rem;">Coursera, edX y Khan Academy redefinen la educación masiva y gratuita.</p></div></div>
+      <div class="t-item"><span class="t-year">2020s</span><div class="t-body"><h4>Pandemia · Auge global</h4><p style="font-size:.82rem;">COVID-19 fuerza la migración total al entorno virtual. IA, microlearning y gamificación emergen.</p></div></div>
+    </div>
+  </div>
+
+  <!-- ══ S5 MODALIDADES PRINCIPALES ══ -->
+  <div class="slide" id="s5">
+    <div class="grid-bg"></div>
+    <div class="eyebrow">Slide 05 — Modalidades</div>
+    <h2 style="margin-bottom:8px;">Las Tres Grandes Modalidades</h2>
+    <div class="accent-line"></div>
+    <div class="card-grid cols-3" style="max-width:1000px;width:100%;">
+      <div class="mod-card async">
+        <span class="tag">Asincrónico</span>
+        <h3 style="color:#4ecdc4;font-size:1.2rem;">⏳ A tu propio ritmo</h3>
+        <p>El estudiante accede a los contenidos cuando lo desea. Sin horarios fijos. Ejemplos: videos grabados, foros, lecturas, cuestionarios.</p>
+        <br>
+        <p style="font-size:.8rem;color:#4ecdc4;">✔ Máxima flexibilidad &nbsp; ✔ Autónomo</p>
+      </div>
+      <div class="mod-card sync">
+        <span class="tag">Sincrónico</span>
+        <h3 style="color:#74b3f0;font-size:1.2rem;">🔴 Tiempo real</h3>
+        <p>Docente y estudiantes interactúan en simultáneo. Requiere horario fijo. Ejemplos: videoclases, webinars, chats en vivo.</p>
+        <br>
+        <p style="font-size:.8rem;color:#74b3f0;">✔ Interacción directa &nbsp; ✔ Comunidad</p>
+      </div>
+      <div class="mod-card hybrid">
+        <span class="tag">Híbrido / Blended</span>
+        <h3 style="color:#f0a07a;font-size:1.2rem;">🔀 Lo mejor de ambos</h3>
+        <p>Combina sesiones presenciales o sincrónicas con recursos asincrónicos. Modelo más adoptado por instituciones educativas.</p>
+        <br>
+        <p style="font-size:.8rem;color:#f0a07a;">✔ Equilibrio &nbsp; ✔ Adaptable</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S6 SUB-MODALIDADES ══ -->
+  <div class="slide" id="s6">
+    <div class="grid-bg"></div>
+    <div class="eyebrow">Slide 06 — Sub-modalidades</div>
+    <h2 style="margin-bottom:8px;">Otras Formas de Aprendizaje Digital</h2>
+    <div class="accent-line"></div>
+    <div class="card-grid cols-2" style="max-width:900px;width:100%;">
+      <div class="card">
+        <span class="icon">📱</span>
+        <h3>Mobile Learning (m-learning)</h3>
+        <p>Aprendizaje a través de dispositivos móviles. Permite estudiar en cualquier lugar y momento. Integra notificaciones y microcontenido.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🎮</span>
+        <h3>Gamificación y Game-Based</h3>
+        <p>Uso de mecánicas de juego (puntos, niveles, insignias) para motivar el aprendizaje y aumentar la retención de contenidos.</p>
+      </div>
+      <div class="card">
+        <span class="icon">⚡</span>
+        <h3>Microlearning</h3>
+        <p>Contenidos breves (2–5 min) enfocados en un único objetivo de aprendizaje. Ideal para formación corporativa y refuerzo.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🤖</span>
+        <h3>Aprendizaje adaptativo con IA</h3>
+        <p>Plataformas que ajustan el contenido y la dificultad en tiempo real según el desempeño y estilo cognitivo del estudiante.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S7 TABLA COMPARATIVA ══ -->
+  <div class="slide" id="s7">
+    <div class="grid-bg"></div>
+    <div class="eyebrow">Slide 07 — Comparación</div>
+    <h2 style="margin-bottom:8px;">Cuadro Comparativo de Modalidades</h2>
+    <div class="accent-line"></div>
+    <div style="overflow-x:auto;width:100%;max-width:900px;">
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th>Criterio</th>
+            <th>Asincrónico</th>
+            <th>Sincrónico</th>
+            <th>Híbrido</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Flexibilidad horaria</strong></td><td><span class="tick">✔ Alta</span></td><td><span class="cross">✖ Baja</span></td><td>⚖ Media</td></tr>
+          <tr><td><strong>Interacción en tiempo real</strong></td><td><span class="cross">✖ No</span></td><td><span class="tick">✔ Sí</span></td><td><span class="tick">✔ Sí (parcial)</span></td></tr>
+          <tr><td><strong>Autonomía del estudiante</strong></td><td><span class="tick">✔ Alta</span></td><td>⚖ Media</td><td>⚖ Media</td></tr>
+          <tr><td><strong>Requiere internet estable</strong></td><td>⚖ No siempre</td><td><span class="tick">✔ Sí</span></td><td><span class="tick">✔ Sí (parcial)</span></td></tr>
+          <tr><td><strong>Sentido de comunidad</strong></td><td><span class="cross">✖ Bajo</span></td><td><span class="tick">✔ Alto</span></td><td><span class="tick">✔ Alto</span></td></tr>
+          <tr><td><strong>Coste de producción</strong></td><td>⚖ Medio-alto</td><td><span class="tick">✔ Bajo</span></td><td>⚖ Medio</td></tr>
+          <tr><td><strong>Escalabilidad</strong></td><td><span class="tick">✔ Alta</span></td><td><span class="cross">✖ Limitada</span></td><td>⚖ Media</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ S8 HERRAMIENTAS ══ -->
+  <div class="slide" id="s8">
+    <div class="grid-bg"></div>
+    <div class="eyebrow">Slide 08 — Tecnología</div>
+    <h2 style="margin-bottom:8px;">Herramientas Tecnológicas Esenciales</h2>
+    <div class="accent-line"></div>
+    <div class="tool-grid">
+      <div class="tool-card"><div class="tool-icon">🏫</div><div class="tool-cat">LMS / Plataforma</div><strong>Moodle · Canvas · Blackboard</strong><p style="font-size:.8rem;">Gestión de cursos, actividades, calificaciones y comunicación.</p></div>
+      <div class="tool-card"><div class="tool-icon">🎥</div><div class="tool-cat">Videoconferencia</div><strong>Zoom · Teams · Google Meet</strong><p style="font-size:.8rem;">Clases sincrónicas, webinars y sesiones de tutoría en vivo.</p></div>
+      <div class="tool-card"><div class="tool-icon">📝</div><div class="tool-cat">Creación de contenido</div><strong>Genially · H5P · Articulate</strong><p style="font-size:.8rem;">OVAs, infografías interactivas, cursos SCORM y actividades multimedia.</p></div>
+      <div class="tool-card"><div class="tool-icon">🎬</div><div class="tool-cat">Video educativo</div><strong>YouTube · Loom · Kaltura</strong><p style="font-size:.8rem;">Grabación, alojamiento y gestión de videolecciones.</p></div>
+      <div class="tool-card"><div class="tool-icon">📊</div><div class="tool-cat">Evaluación</div><strong>Kahoot! · Quizizz · Google Forms</strong><p style="font-size:.8rem;">Evaluaciones formativas, quizzes gamificados y encuestas.</p></div>
+      <div class="tool-card"><div class="tool-icon">💬</div><div class="tool-cat">Colaboración</div><strong>Padlet · Jamboard · Mentimeter</strong><p style="font-size:.8rem;">Trabajo colaborativo, lluvia de ideas y participación activa.</p></div>
+    </div>
+  </div>
+
+  <!-- ══ S9 VENTAJAS / DESAFÍOS ══ -->
+  <div class="slide" id="s9">
+    <div class="grid-bg"></div>
+    <div class="eyebrow">Slide 09 — Análisis</div>
+    <h2 style="margin-bottom:8px;">Ventajas y Desafíos</h2>
+    <div class="accent-line"></div>
+    <div class="vd-grid">
+      <div class="vd-col">
+        <h3 style="color:#4ecdc4;">✅ Ventajas</h3>
+        <div class="vd-item pro">🌍 Acceso global sin barreras geográficas ni de movilidad.</div>
+        <div class="vd-item pro">⏰ Flexibilidad para conciliar estudio, trabajo y vida personal.</div>
+        <div class="vd-item pro">💰 Reducción de costos de desplazamiento e infraestructura.</div>
+        <div class="vd-item pro">🔁 Contenidos disponibles para revisión ilimitada.</div>
+        <div class="vd-item pro">📈 Datos y analíticas para mejorar el aprendizaje continuamente.</div>
+      </div>
+      <div class="vd-col">
+        <h3 style="color:#e05a5a;">⚠️ Desafíos</h3>
+        <div class="vd-item con">📡 Brecha digital: no todos tienen conectividad de calidad.</div>
+        <div class="vd-item con">🧠 Requiere alta autodisciplina y gestión del tiempo.</div>
+        <div class="vd-item con">😔 Riesgo de aislamiento y falta de interacción social.</div>
+        <div class="vd-item con">🖥️ Fatiga de pantalla (Zoom fatigue) en sesiones largas.</div>
+        <div class="vd-item con">🔒 Seguridad, privacidad y autenticidad en evaluaciones.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S10 TENDENCIAS ══ -->
+  <div class="slide" id="s10">
+    <div class="grid-bg"></div>
+    <div class="eyebrow">Slide 10 — Futuro</div>
+    <h2 style="margin-bottom:8px;">Tendencias Emergentes</h2>
+    <div class="accent-line"></div>
+    <div class="trend-list">
+      <div class="trend-item"><span class="trend-num">01</span><div><strong>Inteligencia Artificial Generativa</strong><p style="font-size:.85rem;">Tutores virtuales, generación automática de contenido y personalización masiva de rutas de aprendizaje.</p></div></div>
+      <div class="trend-item"><span class="trend-num">02</span><div><strong>Realidad Virtual y Aumentada (XR)</strong><p style="font-size:.85rem;">Simulaciones inmersivas para medicina, ingeniería, idiomas y habilidades blandas.</p></div></div>
+      <div class="trend-item"><span class="trend-num">03</span><div><strong>Credenciales digitales y blockchain</strong><p style="font-size:.85rem;">Microcredenciales verificables, badges digitales y portafolios de competencias descentralizados.</p></div></div>
+      <div class="trend-item"><span class="trend-num">04</span><div><strong>Learning Analytics avanzado</strong><p style="font-size:.85rem;">Predicción de abandono, identificación de patrones y retroalimentación proactiva basada en datos.</p></div></div>
+      <div class="trend-item"><span class="trend-num">05</span><div><strong>Aprendizaje social y colaborativo (CSCL)</strong><p style="font-size:.85rem;">Comunidades de práctica, co-creación de conocimiento y aprendizaje entre pares mediado tecnológicamente.</p></div></div>
+    </div>
+  </div>
+
+  <!-- ══ S11 AUTOEVALUACIÓN ══ -->
+  <div class="slide" id="s11">
+    <div class="grid-bg"></div>
+    <div class="eyebrow">Slide 11 — Autoevaluación</div>
+    <h2 style="margin-bottom:8px;">Pon a prueba tu aprendizaje</h2>
+    <div class="accent-line"></div>
+    <div class="quiz-wrap" id="quiz-container"></div>
+  </div>
+
+  <!-- ══ S12 CIERRE ══ -->
+  <div class="slide" id="s12">
+    <div class="grid-bg"></div>
+    <div class="blob" style="width:350px;height:350px;background:radial-gradient(#1a7a6e44,transparent);bottom:-50px;right:-80px;"></div>
+    <div class="eyebrow">Slide 12 — Cierre</div>
+    <h2 style="margin-bottom:8px;text-align:center;">Conclusiones y Referencias</h2>
+    <div class="accent-line" style="margin:12px auto;"></div>
+    <div class="card-grid cols-3" style="max-width:900px;width:100%;margin-bottom:28px;">
+      <div class="card" style="text-align:center;">
+        <span class="icon">🔀</span>
+        <p style="font-size:.88rem;">No existe una modalidad <strong>perfecta</strong>; la elección depende del contexto, los recursos y las necesidades del estudiante.</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <span class="icon">🤝</span>
+        <p style="font-size:.88rem;">La clave está en <strong>combinar tecnología con pedagogía</strong>: el diseño instruccional sigue siendo el motor del aprendizaje efectivo.</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <span class="icon">🚀</span>
+        <p style="font-size:.88rem;">El aprendizaje en línea continuará evolucionando. <strong>Adaptarse</strong> y seguir aprendiendo es la habilidad más valiosa del siglo XXI.</p>
+      </div>
+    </div>
+    <ul class="ref-list">
+      <li>Garrison, D. R. (2011). <em>E-Learning in the 21st Century</em>. Routledge.</li>
+      <li>Siemens, G. (2005). Connectivism: A learning theory for the digital age. <em>International Journal of Instructional Technology and Distance Learning</em>, 2(1).</li>
+      <li>UNESCO (2023). <em>Global Education Monitoring Report: Technology in Education</em>. UNESCO Publishing.</li>
+      <li>Allen, I. E. & Seaman, J. (2017). <em>Digital Compass Learning</em>. Babson Survey Research Group.</li>
+    </ul>
+    <br>
+    <button class="start-btn" onclick="goTo(0)" style="font-size:.88rem;padding:12px 30px;">⟲ Volver al inicio</button>
+  </div>
+
+</div><!-- /deck -->
+
+<div id="nav">
+  <button id="btn-prev" onclick="prevSlide()" disabled>← Anterior</button>
+  <div class="sep"></div>
+  <button id="btn-next" onclick="nextSlide()">Siguiente →</button>
+</div>
+
+<script>
+// ── QUIZ DATA ──
+const questions = [
+  {
+    q: "¿Cuál modalidad permite al estudiante acceder a los contenidos en el momento que prefiera, sin horario fijo?",
+    opts: ["Sincrónica","Asincrónica","Híbrida","Presencial intensiva"],
+    ans: 1
+  },
+  {
+    q: "¿Qué herramienta se utiliza principalmente como plataforma de gestión de aprendizaje (LMS)?",
+    opts: ["Zoom","Kahoot!","Moodle","Padlet"],
+    ans: 2
+  },
+  {
+    q: "El 'Microlearning' se caracteriza por:",
+    opts: [
+      "Clases de 4 horas con contenido extenso",
+      "Contenidos breves y focalizados en un objetivo específico",
+      "Aprendizaje exclusivamente en dispositivos de escritorio",
+      "Evaluaciones largas y sumativas"
+    ],
+    ans: 1
+  },
+  {
+    q: "¿Cuál de los siguientes es un DESAFÍO del aprendizaje en línea?",
+    opts: [
+      "Acceso global sin barreras geográficas",
+      "Disponibilidad de contenidos 24/7",
+      "Brecha digital y falta de conectividad",
+      "Reducción de costos de desplazamiento"
+    ],
+    ans: 2
+  },
+  {
+    q: "La modalidad Híbrida (Blended Learning) combina:",
+    opts: [
+      "Solo clases presenciales con evaluaciones en papel",
+      "Recursos asincrónicos con sesiones sincrónicas o presenciales",
+      "Únicamente videos pregrabados y foros",
+      "Aprendizaje por videojuegos y realidad virtual"
+    ],
+    ans: 1
+  }
+];
+
+let current = 0;
+let qIndex = 0;
+let answered = false;
+const totalSlides = 12;
+
+function updateUI() {
+  const pct = ((current + 1) / totalSlides) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('counter').textContent =
+    String(current + 1).padStart(2,'0') + ' / ' + String(totalSlides).padStart(2,'0');
+  document.getElementById('btn-prev').disabled = current === 0;
+  document.getElementById('btn-next').disabled = current === totalSlides - 1;
+}
+
+function goTo(n) {
+  document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.slide')[n].classList.add('active');
+  current = n;
+  updateUI();
+  if (current === 10) renderQuestion();
+}
+
+function nextSlide() { if (current < totalSlides - 1) goTo(current + 1); }
+function prevSlide() { if (current > 0) goTo(current - 1); }
+
+// keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextSlide();
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   prevSlide();
+});
+
+// ── QUIZ ──
+function renderQuestion() {
+  if (qIndex >= questions.length) {
+    document.getElementById('quiz-container').innerHTML = `
+      <div style="text-align:center;padding:30px;">
+        <div style="font-size:3rem;">🎉</div>
+        <h3 style="margin:16px 0 8px;">¡Autoevaluación completada!</h3>
+        <p>Has revisado los conceptos clave de las modalidades de aprendizaje en línea.</p>
+        <button class="next-q-btn" style="display:inline-block;margin-top:20px;" onclick="qIndex=0;renderQuestion()">Repetir preguntas</button>
+      </div>`;
+    return;
+  }
+  const q = questions[qIndex];
+  answered = false;
+  document.getElementById('quiz-container').innerHTML = `
+    <div class="quiz-wrap">
+      <p class="quiz-q"><span style="color:var(--gold);font-family:'DM Mono',monospace;font-size:.75rem;">PREGUNTA ${qIndex+1}/${questions.length}</span><br><br>${q.q}</p>
+      <div class="quiz-opts">
+        ${q.opts.map((o,i)=>`<button class="q-btn" onclick="checkAns(${i})">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}
+      </div>
+      <div id="quiz-feedback"></div>
+      <button class="next-q-btn" id="next-q" onclick="qIndex++;renderQuestion()">Siguiente pregunta →</button>
+    </div>`;
+}
+
+function checkAns(i) {
+  if (answered) return;
+  answered = true;
+  const q = questions[qIndex];
+  const btns = document.querySelectorAll('.q-btn');
+  btns[i].classList.add(i === q.ans ? 'correct' : 'wrong');
+  if (i !== q.ans) btns[q.ans].classList.add('correct');
+  document.getElementById('quiz-feedback').innerHTML =
+    i === q.ans
+      ? '<span style="color:#4ecdc4;">✔ ¡Correcto! Excelente.</span>'
+      : `<span style="color:#e05a5a;">✖ Incorrecto. La respuesta correcta es la opción ${String.fromCharCode(65+q.ans)}.</span>`;
+  document.getElementById('next-q').style.display = 'inline-block';
+}
+</script>
+</body>
+</html>
